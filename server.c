@@ -21,9 +21,24 @@ void getargs(int *port, int argc, char *argv[])
     *port = atoi(argv[1]);
 }
 
-
+void* fun(void* i){
+    int a=*((int*)i);
+    puts("burda");
+    printf("%d\n",a);
+    sleep(5);
+}
 int main(int argc, char *argv[])
 {
+
+    worker_pool wp;
+    initialize_pool(&wp,5);
+    int a=5;
+    for(int i=1;i<10;i++){
+        int p=schedule(fun,&a,&wp);
+        //printf("%d\n",p);
+    }
+
+    /*
     int listenfd, connfd, port, clientlen;
     struct sockaddr_in clientaddr;
 
@@ -45,7 +60,7 @@ int main(int argc, char *argv[])
 	requestHandle(connfd);
 
 	Close(connfd);
-    }
+    }*/
 
 }
 

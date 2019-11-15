@@ -571,7 +571,9 @@ void initialize_pool(worker_pool* wp,int number_of_workers){
 int schedule(void* (*start_routine)(void*),void* args,worker_pool* wp){
     int free=-1;
     for(int i=0;i<wp->num_of_threads;i++){
-        if(pthread_kill(&*(*(wp->workers+i)),0)==0){
+        int d=pthread_kill(&*(wp->workers[i]),0);
+        printf("d %d\n",d);
+        if(pthread_kill(&*(*(wp->workers+i)),0)!=0){
             free=0;
             pthread_create(*(wp->workers+i),NULL,start_routine,args);
             break;

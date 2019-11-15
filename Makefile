@@ -20,13 +20,13 @@ server: server.o request.o bil461.o
 	$(CC) $(CFLAGS) -o server server.o request.o bil461.o $(LIBS)
 
 client: client.o bil461.o
-	$(CC) $(CFLAGS) -o client client.o bil461.o
+	$(CC) $(CFLAGS) -o client client.o bil461.o $(LIBS)
 
 output.cgi: output.c
-	$(CC) $(CFLAGS) -o output.cgi output.c
+	$(CC) $(CFLAGS) -o output.cgi output.c $(LIBS)
 
 .c.o:
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) -o $@ -c $< $(LIBS)
 
 clean:
 	-rm -f $(OBJS) server client output.cgi

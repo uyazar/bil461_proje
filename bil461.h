@@ -62,6 +62,14 @@ void posix_error(int code, char *msg);
 void dns_error(char *msg);
 void app_error(char *msg);
 
+typedef struct 
+{
+    pthread_t** workers;
+    int num_of_threads;
+}worker_pool;
+
+void initialize_pool(worker_pool*,int);
+int schedule(void* (*start_routine)(void*),void* args,worker_pool* wp);
 
 /* Process control wrappers */
 pid_t Fork(void);
@@ -123,14 +131,7 @@ int Open_listenfd(int port);
 
 
 /*Thread pool*/
-typedef struct 
-{
-    pthread_t** workers;
-    int num_of_threads;
-}worker_pool;
 
-void initialize_pool(worker_pool*,int);
-int schedule(void* (*start_routine)(void*),void* args,worker_pool* wp);
 
 
 #endif /* __CSAPP_H__ */
