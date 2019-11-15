@@ -121,4 +121,18 @@ int open_listenfd(int portno);
 int Open_clientfd(char *hostname, int port);
 int Open_listenfd(int port); 
 
+
+/*Thread pool*/
+typedef struct 
+{
+    pthread_t** workers;
+    int num_of_threads;
+}worker_pool;
+
+void initialize_pool(worker_pool*,int);
+int schedule(void* (*start_routine)(void*),void* args,worker_pool* wp);
+
+
 #endif /* __CSAPP_H__ */
+
+

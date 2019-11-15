@@ -558,3 +558,24 @@ int Open_listenfd(int port)
 }
 
 
+void initialize_pool(worker_pool* wp,int number_of_workers){
+    wp->num_of_threads=number_of_workers;
+    pthread_t** worker_arr=(pthread_t**)malloc(number_of_workers*sizeof(pthread_t*));
+    wp->workers=worker_arr;
+    for(int i=0;i<number_of_workers;i++){
+        pthread_t* worker=(pthread_t*)malloc(sizeof(pthread_t));
+        *(wp->workers+i)=worker;
+    }
+}
+
+int schedule(void* (*start_routine)(void*),void* args,worker_pool* wp){
+    int free=-1;
+    for(int i=0;i<wp->num_of_threads;i++){
+        if(pthread_kill(&*(*(wp->workers+i)),0)==0){
+            free=0;
+            pthread_create(*(wp->workers+i),NULL,start_routine,args);
+            break;
+        }
+    }
+    return free; 
+}
