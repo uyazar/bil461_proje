@@ -13,9 +13,11 @@ void* fun(){
 }
 int main(void) 
 { 
-    pthread_t* arr=malloc(2*sizeof(pthread_t));
-    pthread_create(&arr[0],NULL,fun,NULL);
-    pthread_create(&arr[1],NULL,fun,NULL);
-    pthread_join(arr[0],NULL);
-    pthread_join(arr[1],NULL);
+    pthread_t t1;
+    pthread_create(&t1,NULL,fun,NULL);
+    sleep(5);
+    int t2=pthread_tryjoin_np(t1,NULL);
+    printf("%d\n",t2);
 }
+
+

@@ -3,13 +3,129 @@
 #include <semaphore.h>
 #include <string.h>
 
-int i=0;
+
+long get_time(char*);
+long get_size(char*);
+char* get_uri(int);
+void right_shift(int*,int,int);
+void left_shift(int*,int,int);
+//for debugging
+void print_buf();
+/*buf variables for fifo*/
+int buf_size;
 int* buf;
 char* schedule_alg;
+
+/*buf variables for RFF*/
+int count=0;
 
 sem_t empty;
 sem_t full;
 sem_t mutex;
+
+void shift(int* arr,int left_index,int right_index){
+    for(int j=right_index;j>=left_index;j--){
+        buf[j+1]=buf[j];
+    }
+}
+
+void* enqueue(void* arg){
+    int desc=*((int*)arg);
+    sem_wait(&empty);
+    sem_wait(&mutex);
+    //circular queue
+    if(strcmp("FIFO",schedule_alg)==0){
+        buf[count]=desc;
+        count++;
+    }
+    else if(strcmp("RFF",schedule_alg)==0){
+        //simple insertion wrt the last modification timestamp
+        if(count==0){
+            buf[0]=desc;
+        }
+        else{
+            char* uri=get_uri(desc);
+            long last_modify=get_time(uri+1);
+            int k=0;
+            while(k<count){
+                char* temp_uri=get_uri(buf[k]);
+                long temp_lmodify=get_time(temp_uri+1);
+                if(last_modify>temp_lmodify)
+                    break;
+                k++;
+            }
+            if(k==count){
+                buf[k]=desc;
+            }
+            else{
+                shift(buf,k,count-1);
+                buf[k]=desc;
+            }
+
+        }
+        count++;
+
+    }
+    else{
+        if(count==0){
+            buf[0]=desc;
+        }
+        else{
+            char* uri=get_uri(desc);
+            long size_of_current=get_size(uri+1);
+            int k=0;
+            while(k<count){
+                char* temp_uri=get_uri(buf[k]);
+                long temp_size=get_size(temp_uri+1);
+                if(temp_size>size_of_current)
+                    break;
+                k++;
+            }
+            if(k==count){
+                buf[k]=desc;
+            }
+            else{
+                shift(buf,k,count-1);
+                buf[k]=desc;
+            }
+
+        }
+        count++;     
+    }
+
+    print_buf();
+    sem_post(&mutex);
+    sem_post(&full);
+
+}
+
+void* dequeue(void* arg){
+    sem_wait(&full);
+    sem_wait(&mutex);
+    //dequeue
+    int conn;
+    if (strcmp("FIFO",schedule_alg)==0)
+    {
+        conn=buf[0];
+        //left_shift;
+    }
+    else{
+        conn=buf[0];
+        //left shift
+        for(int i=0;i<buf_size-1;i++){
+            buf[i]=buf[i+1];
+        }
+        count--;
+    }    
+
+    requestHandle(conn);
+    Close(conn);
+    sem_post(&mutex);
+    sem_post(&empty);
+    //
+    pthread_t tid=pthread_self();
+    pthread_create(&tid,NULL,dequeue,NULL);
+}
 
 void getargs(int *port, int* pool_size,int* buf_size,char* schedule_alg,int argc, char *argv[])
 {
@@ -50,7 +166,7 @@ long get_time(char* uri){
 long get_size(char* uri){
    int file_desc = 0; 
     struct stat st; 
-    file_desc = open(*uri,O_RDONLY); 
+    file_desc = open(uri,O_RDONLY); 
  
     if(-1 == file_desc) 
     { 
@@ -78,45 +194,18 @@ char* get_uri(int fd){
     return uri;
 }
 
-void* enqueue(void* arg){
-    int desc=*((int*)arg);
-    sem_wait(&empty);
-    sem_wait(&mutex);
-    buf[i]=desc;
-    i++;
-    /*
-    if(strcmp("FIFO",schedule_alg)==0){
-        buf[i]=desc;
-        i++;
-    }*/
-    if(strcmp("RFF",schedule_alg)==0){
-        for(int j=0;j<i;j++){
-            char* u=get_uri(buf[j]);
-            long t=get_time(u+1);
-            printf("%s %d %d\n",u,t,buf[j]);
+void print_buf(){
+    puts("----------buffer content-------------");
+    for(int i=0;i<buf_size;i++){
+        if(buf[i]!=-1){
+            char* temp_uri=get_uri(buf[i]);
+            long temp_time=get_time(temp_uri+1);
+            long temp_size=get_size(temp_uri+1);
+            printf("uri: %s time: %ld size : %ld\n",temp_uri,temp_time,temp_size);
         }
+
     }
-    printf("---------------\n");
-
-    sem_post(&mutex);
-    sem_post(&full);
-
-}
-
-void* dequeue(void* arg){
-    sem_wait(&full);
-    sem_wait(&mutex);
-    int conn=buf[i-1];
-    buf[i-1]=-1;
-    i--;
-    printf("consuemer takes %d\n",conn);
-    requestHandle(conn);
-    Close(conn);
-    pthread_t tid=pthread_self();
-    printf("tid:%d\n",tid);
-    sem_post(&mutex);
-    sem_post(&empty);
-    pthread_create(&tid,NULL,dequeue,NULL);
+     puts("------------------------------------");
 }
 
 
@@ -124,7 +213,7 @@ void* dequeue(void* arg){
 int main(int argc, char *argv[])
 {
 
-    int listenfd, connfd, port, clientlen,pool_size,buf_size;
+    int listenfd, connfd, port, clientlen,pool_size;
     schedule_alg=(char*)malloc(5*sizeof(char));
     struct sockaddr_in clientaddr;
 
@@ -132,6 +221,9 @@ int main(int argc, char *argv[])
 
     buf=malloc(buf_size*sizeof(int));
     pthread_t* workers=malloc(pool_size*sizeof(pthread_t));
+
+    for(int i=0;i<buf_size;i++)
+        buf[i]=-1;
 
     sem_init(&empty,0,buf_size);
     sem_init(&full,0,0);
