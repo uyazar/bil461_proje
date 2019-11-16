@@ -5,19 +5,16 @@
 #include <errno.h> 
 #include <string.h> 
 #include <fcntl.h> 
-#include <pthread.h>
- 
+#include <sys/stat.h>
 
-void* fun(){
-    printf("selam\n");
-}
 int main(void) 
 { 
-    pthread_t t1;
-    pthread_create(&t1,NULL,fun,NULL);
-    sleep(5);
-    int t2=pthread_tryjoin_np(t1,NULL);
-    printf("%d\n",t2);
+        int desc=open("favicon.ico",0);
+        struct stat stNew;
+        fstat(desc,&stNew);
+        time_t timeNew=stNew.st_mtime;
+        struct stat stTemp;
+        printf("burda %ld\n",stNew.st_size);
 }
 
 

@@ -30,9 +30,11 @@ void shift(int* arr,int left_index,int right_index){
 }
 
 void* enqueue(void* arg){
-    int desc=*((int*)arg);
+
     sem_wait(&empty);
     sem_wait(&mutex);
+    
+    int desc=*((int*)arg);
     //circular queue
     if(strcmp("FIFO",schedule_alg)==0){
         buf[count]=desc;
@@ -93,7 +95,6 @@ void* enqueue(void* arg){
         count++;     
     }
 
-    print_buf();
     sem_post(&mutex);
     sem_post(&full);
 
@@ -239,6 +240,7 @@ int main(int argc, char *argv[])
         clientlen = sizeof(clientaddr);
         connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *) &clientlen);
         enqueue(&connfd);
+ 
     }
 
 }
