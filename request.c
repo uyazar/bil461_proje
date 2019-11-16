@@ -147,45 +147,46 @@ void requestServeStatic(int fd, char *filename, int filesize)
 }
 
 // handle a request
-void *requestHandle(void* fd)
+void requestHandle(int fd)
 {
-   int file_desc=*((int*)(fd));
+
    int is_static;
    struct stat sbuf;
    char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
    char filename[MAXLINE], cgiargs[MAXLINE];
    rio_t rio;
 
-   Rio_readinitb(&rio, file_desc);
+   Rio_readinitb(&rio, fd);
    Rio_readlineb(&rio, buf, MAXLINE);
+
    sscanf(buf, "%s %s %s", method, uri, version);
 
    printf("%s %s %s\n", method, uri, version);
 
    if (strcasecmp(method, "GET")) {
-      requestError(file_desc, method, "501", "Not Implemented", "bil461 Server does not implement this method");
+      requestError(fd, method, "501", "Not Implemented", "bil461 Server does not implement this method");
       return;
    }
    requestReadhdrs(&rio);
 
    is_static = requestParseURI(uri, filename, cgiargs);
    if (stat(filename, &sbuf) < 0) {
-      requestError(file_desc, filename, "404", "Not found", "bil461 Server could not find this file");
+      requestError(fd, filename, "404", "Not found", "bil461 Server could not find this file");
       return;
    }
 
    if (is_static) {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {
-         requestError(file_desc, filename, "403", "Forbidden", "bil461 Server could not read this file");
+         requestError(fd, filename, "403", "Forbidden", "bil461 Server could not read this file");
          return;
       }
-      requestServeStatic(file_desc, filename, sbuf.st_size);
+      requestServeStatic(fd, filename, sbuf.st_size);
    } else {
       if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {
-         requestError(file_desc, filename, "403", "Forbidden", "bil461 Server could not run this CGI program");
+         requestError(fd, filename, "403", "Forbidden", "bil461 Server could not run this CGI program");
          return;
       }
-      requestServeDynamic(file_desc, filename, cgiargs);
+      requestServeDynamic(fd, filename, cgiargs);
    }
 }
 

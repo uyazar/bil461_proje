@@ -1,5 +1,5 @@
 #ifndef __REQUEST_H__
 
-void* requestHandle(void* fd);
+void requestHandle(int fd);
 
 #endif
